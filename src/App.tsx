@@ -8,7 +8,9 @@ import {
   Settings, Sparkles, Star, Target, TerminalSquare, Trophy, UserRound, UsersRound, WandSparkles, X, Zap,
 } from 'lucide-react'
 import { lessonTopics, modules, pathNodes, projects, schedule, stats } from './data'
-import { liveLessons, liveTopicFeed } from './lessonContent'
+import { allLessons, catalogModules, lessonCount } from './courseCatalog'
+import { liveTopicFeed } from './lessonContent'
+import type { LiveLesson } from './lessonContent'
 import type { Module } from './data'
 import './styles.css'
 
@@ -31,8 +33,12 @@ function App() {
   const [mentorOpen, setMentorOpen] = useState(false)
   const [showIntro, setShowIntro] = useState(() => sessionStorage.getItem('coai-intro-seen') !== 'true')
   const [toast, setToast] = useState('')
-  const [completed, setCompleted] = useState(() => localStorage.getItem('coai-complete') === 'true')
-  const [bookmarked, setBookmarked] = useState(() => localStorage.getItem('coai-bookmarked') === 'true')
+  const [selectedLessonId, setSelectedLessonId] = useState(() => {
+    const saved = localStorage.getItem('coai-active-lesson')
+    return saved && allLessons.some((lesson) => lesson.id === saved) ? saved : allLessons[0].id
+  })
+  const [completed, setCompleted] = useState(() => localStorage.getItem(`coai-complete-${selectedLessonId}`) === 'true')
+  const [bookmarked, setBookmarked] = useState(() => localStorage.getItem(`coai-bookmarked-${selectedLessonId}`) === 'true')
 
   useEffect(() => {
     if (!showIntro) return
@@ -56,16 +62,23 @@ function App() {
     return () => window.clearTimeout(timer)
   }, [toast])
 
+  const selectLesson = (id: string) => {
+    setSelectedLessonId(id)
+    localStorage.setItem('coai-active-lesson', id)
+    setCompleted(localStorage.getItem(`coai-complete-${id}`) === 'true')
+    setBookmarked(localStorage.getItem(`coai-bookmarked-${id}`) === 'true')
+  }
+
   const completeLesson = () => {
     setCompleted(true)
-    localStorage.setItem('coai-complete', 'true')
+    localStorage.setItem(`coai-complete-${selectedLessonId}`, 'true')
     setToast('Lesson complete — +120 skill points')
   }
 
   const toggleBookmark = () => {
     const next = !bookmarked
     setBookmarked(next)
-    localStorage.setItem('coai-bookmarked', String(next))
+    localStorage.setItem(`coai-bookmarked-${selectedLessonId}`, String(next))
     setToast(next ? 'Lesson saved to your bookmarks' : 'Lesson removed from bookmarks')
   }
 
@@ -78,7 +91,7 @@ function App() {
         {route === 'dashboard' && <Dashboard onNavigate={navigate} />}
         {route === 'path' && <PathPage onNavigate={navigate} />}
         {route === 'catalog' && <CatalogPage onNavigate={navigate} />}
-        {route === 'lesson' && <LessonPage completed={completed} bookmarked={bookmarked} onComplete={completeLesson} onBookmark={toggleBookmark} onNavigate={navigate} />}
+        {route === 'lesson' && <LessonPage selectedLessonId={selectedLessonId} completed={completed} bookmarked={bookmarked} onComplete={completeLesson} onBookmark={toggleBookmark} onLessonChange={selectLesson} onNavigate={navigate} />}
         {route === 'lab' && <CodingLab onNavigate={navigate} onToast={setToast} />}
         {route === 'rag' && <RagLab onNavigate={navigate} />}
         {route === 'agents' && <AgentLab onNavigate={navigate} />}
@@ -180,7 +193,7 @@ function ProjectsCard({ onNavigate }: { onNavigate: (route: Route) => void }) {
 }
 
 function PathPage({ onNavigate }: { onNavigate: (route: Route) => void }) {
-  return <div className="page-content"><PageHeader eyebrow="LEARNING PATH · 11 MODULES" title="Build your AI fluency." description="A systems-first path from first principles to production-grade AI." action={<button className="button primary" onClick={() => onNavigate('lesson')}>Resume path <Play size={14} fill="currentColor" /></button>} /><section className="path-hero panel"><div><span className="path-kicker"><Sparkles size={14} /> Personalised for you</span><h2>Understand the whole stack.<br /><em>Build what matters.</em></h2><p>Each module moves from intuition to implementation, so you can see what is happening inside the system — and make it work yourself.</p><div className="path-facts"><span><strong>11</strong> modules</span><span><strong>137</strong> lessons</span><span><strong>42h</strong> guided labs</span></div></div><div className="path-orb-graphic"><div className="graphic-ring r1" /><div className="graphic-ring r2" /><div className="graphic-ring r3" /><div className="graphic-core"><BrainCircuit size={31} /><span>AI<br />SYSTEMS</span></div></div></section><div className="module-list">{modules.map((module) => <ModuleRow key={module.id} module={module} onNavigate={onNavigate} />)}</div></div>
+  return <div className="page-content"><PageHeader eyebrow="LEARNING PATH · 11 MODULES" title="Build your AI fluency." description="A systems-first path from first principles to production-grade AI." action={<button className="button primary" onClick={() => onNavigate('lesson')}>Resume path <Play size={14} fill="currentColor" /></button>} /><section className="path-hero panel"><div><span className="path-kicker"><Sparkles size={14} /> Personalised for you</span><h2>Understand the whole stack.<br /><em>Build what matters.</em></h2><p>Each module moves from intuition to implementation, so you can see what is happening inside the system — and make it work yourself.</p><div className="path-facts"><span><strong>11</strong> modules</span><span><strong>{lessonCount}</strong> lessons</span><span><strong>42h</strong> guided labs</span></div></div><div className="path-orb-graphic"><div className="graphic-ring r1" /><div className="graphic-ring r2" /><div className="graphic-ring r3" /><div className="graphic-core"><BrainCircuit size={31} /><span>AI<br />SYSTEMS</span></div></div></section><div className="module-list">{modules.map((module) => <ModuleRow key={module.id} module={module} onNavigate={onNavigate} />)}</div></div>
 }
 
 function ModuleRow({ module, onNavigate }: { module: Module; onNavigate: (route: Route) => void }) {
@@ -189,7 +202,7 @@ function ModuleRow({ module, onNavigate }: { module: Module; onNavigate: (route:
 }
 
 function CatalogPage({ onNavigate }: { onNavigate: (route: Route) => void }) {
-  return <div className="page-content"><PageHeader eyebrow="CURRICULUM CATALOGUE" title="Choose your next edge." description="11 modules. 117 lessons. One connected mental model." action={<button className="button ghost" onClick={() => onNavigate('path')}><GitBranch size={15} /> View learning path</button>} /><div className="catalog-filters"><button className="filter-chip active">All modules <span>11</span></button><button className="filter-chip">Foundations</button><button className="filter-chip">Engineering</button><button className="filter-chip">Production</button><div className="catalog-search"><Search size={15} /><input placeholder="Filter curriculum" /></div></div><div className="catalog-grid">{modules.map((module) => <CatalogCard key={module.id} module={module} onNavigate={onNavigate} />)}</div></div>
+  return <div className="page-content"><PageHeader eyebrow="CURRICULUM CATALOGUE" title="Choose your next edge." description={`11 modules. ${lessonCount} lessons. One connected mental model.`} action={<button className="button ghost" onClick={() => onNavigate('path')}><GitBranch size={15} /> View learning path</button>} /><div className="catalog-filters"><button className="filter-chip active">All modules <span>11</span></button><button className="filter-chip">Foundations</button><button className="filter-chip">Engineering</button><button className="filter-chip">Production</button><div className="catalog-search"><Search size={15} /><input placeholder="Filter curriculum" /></div></div><div className="catalog-grid">{modules.map((module) => <CatalogCard key={module.id} module={module} onNavigate={onNavigate} />)}</div></div>
 }
 
 function CatalogCard({ module, onNavigate }: { module: Module; onNavigate: (route: Route) => void }) {
@@ -276,36 +289,72 @@ function LiveUpdatesPanel() {
   return <section className="live-updates panel"><div className="live-updates-heading"><div><span className="studio-status"><i /> LIVE COURSE SIGNAL</span><h3>What changed in your learning environment</h3></div><button className="refresh-live" onClick={() => void refresh()} disabled={loading}><RotateCcw size={13} className={loading ? 'spin' : ''} /> {loading ? 'Syncing' : `Updated ${updatedAt}`}</button></div><div className="live-update-grid">{items.map((item) => <article className={`live-update ${item.tone}`} key={item.id}><span>{item.label}</span><strong>{item.title}</strong><p>{item.detail}</p></article>)}</div></section>
 }
 
-function LessonPage({ completed, bookmarked, onComplete, onBookmark, onNavigate }: { completed: boolean; bookmarked: boolean; onComplete: () => void; onBookmark: () => void; onNavigate: (route: Route) => void }) {
-  const [lessonIndex, setLessonIndex] = useState(0)
+type LessonPageProps = {
+  selectedLessonId: string
+  completed: boolean
+  bookmarked: boolean
+  onComplete: () => void
+  onBookmark: () => void
+  onLessonChange: (id: string) => void
+  onNavigate: (route: Route) => void
+}
+
+function lessonProgressValue(id: string, fallbackComplete = false) {
+  const saved = localStorage.getItem(`coai-progress-${id}`)
+  if (saved !== null) return Number(saved)
+  return localStorage.getItem(`coai-complete-${id}`) === 'true' || fallbackComplete ? 100 : 0
+}
+
+function LessonPage({ selectedLessonId, completed, bookmarked, onComplete, onBookmark, onLessonChange, onNavigate }: LessonPageProps) {
+  const initialIndex = Math.max(0, allLessons.findIndex((item) => item.id === selectedLessonId))
+  const [lessonIndex, setLessonIndex] = useState(initialIndex)
   const [tab, setTab] = useState<Tab>('Overview')
   const [stage, setStage] = useState(0)
-  const [lessonProgress, setLessonProgress] = useState(() => Number(localStorage.getItem(`coai-progress-${liveLessons[0].id}`) || (completed ? 100 : 12)))
-  const lesson = liveLessons[lessonIndex]
+  const [outlineQuery, setOutlineQuery] = useState('')
+  const [moduleFilter, setModuleFilter] = useState('all')
+  const [lessonProgress, setLessonProgress] = useState(() => lessonProgressValue(selectedLessonId, completed))
+  const lesson = allLessons[lessonIndex]
+  const filteredLessons = useMemo(() => allLessons.filter((item) => {
+    const matchesModule = moduleFilter === 'all' || item.module === catalogModules.find((module) => module.id === moduleFilter)?.title
+    const query = outlineQuery.trim().toLowerCase()
+    return matchesModule && (!query || `${item.title} ${item.module}`.toLowerCase().includes(query))
+  }), [moduleFilter, outlineQuery])
+
+  useEffect(() => {
+    const nextIndex = Math.max(0, allLessons.findIndex((item) => item.id === selectedLessonId))
+    setLessonIndex(nextIndex)
+    setStage(0)
+    setTab('Overview')
+    setLessonProgress(lessonProgressValue(selectedLessonId, completed))
+  }, [selectedLessonId, completed])
+
   const markComplete = () => {
     setLessonProgress(100)
     localStorage.setItem(`coai-progress-${lesson.id}`, '100')
     onComplete()
   }
   const chooseLesson = (index: number) => {
-    const next = liveLessons[index]
+    const next = allLessons[index]
+    if (!next) return
     setLessonIndex(index)
     setStage(0)
     setTab('Overview')
-    setLessonProgress(Number(localStorage.getItem(`coai-progress-${next.id}`) || '12'))
+    setLessonProgress(lessonProgressValue(next.id))
+    onLessonChange(next.id)
   }
-  return <div className="page-content live-lesson-page"><div className="lesson-breadcrumb"><button onClick={() => onNavigate('path')}><ArrowLeft size={14} /> Learning path</button><ChevronRight size={13} /><span>{lesson.module}</span><ChevronRight size={13} /><strong>Live lesson</strong></div><div className="live-lesson-layout"><aside className="lesson-outline panel"><div className="eyebrow">LIVE CURRICULUM</div><h3>Machine Learning</h3><div className="outline-progress"><span style={{ width: `${lessonProgress}%` }} /></div><small>{lessonProgress}% lesson state saved</small><div className="lesson-outline-list">{liveLessons.map((item, index) => <button className={index === lessonIndex ? 'active' : ''} onClick={() => chooseLesson(index)} key={item.id}><span>{String(index + 1).padStart(2, '0')}</span><div><strong>{item.title}</strong><small>{item.duration} · {item.difficulty}</small></div>{Number(localStorage.getItem(`coai-progress-${item.id}`) || (index === 0 && completed ? 100 : 0)) >= 100 && <CheckCircle2 size={14} />}</button>)}</div><div className="outline-note"><Sparkles size={15} /><p>Every visual is connected to the concept, code and check below it.</p></div></aside><div className="live-lesson-main"><div className="lesson-title-row"><div><div className="eyebrow">MODULE {lesson.moduleNumber} · {lesson.module.toUpperCase()}</div><h1>{lesson.title}</h1><p className="lesson-lede">{lesson.question}</p></div><div className="lesson-actions"><button className={`icon-button ${bookmarked ? 'bookmarked' : ''}`} onClick={onBookmark} aria-label="Bookmark lesson"><Bookmark size={18} fill={bookmarked ? 'currentColor' : 'none'} /></button><button className="button primary" onClick={markComplete}>{lessonProgress >= 100 ? <Check size={15} /> : <CheckCircle2 size={15} />}{lessonProgress >= 100 ? 'Completed' : 'Mark complete'}</button></div></div><div className="lesson-meta-row"><span><Clock3 size={14} /> {lesson.duration}</span><span><Target size={14} /> {lesson.difficulty}</span><span><Zap size={14} /> live state</span><span className="lesson-progress"><span style={{ width: `${lessonProgress}%` }} /></span><strong>{lessonProgress}% complete</strong></div><div className="lesson-tabs">{(['Overview', 'Visualise', 'Learn', 'Code', 'Practise', 'Quiz', 'Notes'] as Tab[]).map((item) => <button key={item} className={tab === item ? 'active' : ''} onClick={() => { setTab(item); setLessonProgress((value) => Math.max(value, item === 'Notes' ? 55 : value)) }}>{item === 'Visualise' && <Network size={14} />}{item === 'Code' && <Code2 size={14} />}{item === 'Quiz' && <CheckCircle2 size={14} />}{item === 'Notes' && <FileText size={14} />}{item}</button>)}</div><div className="live-lesson-body">{tab === 'Overview' && <LiveLessonOverview lesson={lesson} onVisualise={() => setTab('Visualise')} />}{tab === 'Visualise' && <LiveConceptAnimation lesson={lesson} stage={stage} setStage={setStage} />}{tab === 'Learn' && <LiveLearn lesson={lesson} stage={stage} />}{tab === 'Code' && <LiveCodeLesson lesson={lesson} onNavigate={onNavigate} />}{tab === 'Practise' && <LivePractice lesson={lesson} />}{tab === 'Quiz' && <LiveQuiz lesson={lesson} onComplete={markComplete} />}{tab === 'Notes' && <LiveNotesPanel lesson={lesson} />}</div><div className="lesson-footer"><button className="button ghost" disabled={lessonIndex === 0} onClick={() => chooseLesson(Math.max(0, lessonIndex - 1))}><ArrowLeft size={14} /> Previous lesson</button><button className="button primary" onClick={() => lessonIndex < liveLessons.length - 1 ? chooseLesson(lessonIndex + 1) : markComplete()}>{lessonIndex < liveLessons.length - 1 ? 'Next live lesson' : 'Finish learning path'} <ArrowRight size={14} /></button></div></div></div></div>
+
+  return <div className="page-content live-lesson-page"><div className="lesson-breadcrumb"><button onClick={() => onNavigate('path')}><ArrowLeft size={14} /> Learning path</button><ChevronRight size={13} /><span>{lesson.module}</span><ChevronRight size={13} /><strong>Lesson {lessonIndex + 1} of {lessonCount}</strong></div><div className="live-lesson-layout"><aside className="lesson-outline panel"><div className="eyebrow">LIVE CURRICULUM · {lessonCount} LESSONS</div><h3>{lesson.module}</h3><div className="outline-progress"><span style={{ width: `${lessonProgress}%` }} /></div><small>{lessonProgress}% lesson state saved</small><div className="lesson-outline-tools"><label><Search size={13} /><input value={outlineQuery} onChange={(event) => setOutlineQuery(event.target.value)} placeholder="Search all lessons" aria-label="Search all lessons" /></label><select value={moduleFilter} onChange={(event) => setModuleFilter(event.target.value)} aria-label="Filter lessons by module"><option value="all">All modules</option>{catalogModules.map((module) => <option value={module.id} key={module.id}>{module.number} · {module.title}</option>)}</select></div><div className="outline-result-count">Showing {filteredLessons.length} of {lessonCount} lessons</div><div className="lesson-outline-list">{filteredLessons.map((item) => { const index = allLessons.findIndex((candidate) => candidate.id === item.id); const isComplete = lessonProgressValue(item.id) >= 100; return <button className={index === lessonIndex ? 'active' : ''} onClick={() => chooseLesson(index)} key={item.id}><span>{String(index + 1).padStart(3, '0')}</span><div><strong>{item.title}</strong><small>{item.module} · {item.duration} · {item.difficulty}</small></div>{isComplete && <CheckCircle2 size={14} />}</button> })}</div>{filteredLessons.length === 0 && <p className="outline-empty">No lessons match that search. Clear the filter to browse the full curriculum.</p>}<div className="outline-note"><Sparkles size={15} /><p>Every visual is connected to the concept, code and check below it.</p></div></aside><div className="live-lesson-main"><div className="lesson-title-row"><div><div className="eyebrow">MODULE {lesson.moduleNumber} · {lesson.module.toUpperCase()}</div><h1>{lesson.title}</h1><p className="lesson-lede">{lesson.question}</p></div><div className="lesson-actions"><button className={`icon-button ${bookmarked ? 'bookmarked' : ''}`} onClick={onBookmark} aria-label="Bookmark lesson"><Bookmark size={18} fill={bookmarked ? 'currentColor' : 'none'} /></button><button className="button primary" onClick={markComplete}>{lessonProgress >= 100 ? <Check size={15} /> : <CheckCircle2 size={15} />}{lessonProgress >= 100 ? 'Completed' : 'Mark complete'}</button></div></div><div className="lesson-meta-row"><span><Clock3 size={14} /> {lesson.duration}</span><span><Target size={14} /> {lesson.difficulty}</span><span><Zap size={14} /> {lesson.module}</span><span className="lesson-progress"><span style={{ width: `${lessonProgress}%` }} /></span><strong>{lessonProgress}% complete</strong></div><div className="lesson-tabs">{(['Overview', 'Visualise', 'Learn', 'Code', 'Practise', 'Quiz', 'Notes'] as Tab[]).map((item) => <button key={item} className={tab === item ? 'active' : ''} onClick={() => { setTab(item); setLessonProgress((value) => Math.max(value, item === 'Notes' ? 55 : value)) }}>{item === 'Visualise' && <Network size={14} />}{item === 'Code' && <Code2 size={14} />}{item === 'Quiz' && <CheckCircle2 size={14} />}{item === 'Notes' && <FileText size={14} />}{item}</button>)}</div><div className="live-lesson-body">{tab === 'Overview' && <LiveLessonOverview lesson={lesson} onVisualise={() => setTab('Visualise')} />}{tab === 'Visualise' && <LiveConceptAnimation lesson={lesson} stage={stage} setStage={setStage} />}{tab === 'Learn' && <LiveLearn lesson={lesson} stage={stage} />}{tab === 'Code' && <LiveCodeLesson lesson={lesson} onNavigate={onNavigate} />}{tab === 'Practise' && <LivePractice lesson={lesson} />}{tab === 'Quiz' && <LiveQuiz lesson={lesson} onComplete={markComplete} />}{tab === 'Notes' && <LiveNotesPanel lesson={lesson} />}</div><div className="lesson-footer"><button className="button ghost" disabled={lessonIndex === 0} onClick={() => chooseLesson(Math.max(0, lessonIndex - 1))}><ArrowLeft size={14} /> Previous lesson</button><button className="button primary" onClick={() => lessonIndex < allLessons.length - 1 ? chooseLesson(lessonIndex + 1) : markComplete()}>{lessonIndex < allLessons.length - 1 ? 'Next lesson' : 'Finish curriculum'} <ArrowRight size={14} /></button></div></div></div></div>
 }
 
-function LiveLessonOverview({ lesson, onVisualise }: { lesson: typeof liveLessons[number]; onVisualise: () => void }) {
+function LiveLessonOverview({ lesson, onVisualise }: { lesson: LiveLesson; onVisualise: () => void }) {
   return <div className="live-overview-grid"><div className="live-overview-main"><section className="lesson-intro panel"><div className="eyebrow">THE IDEA IN PLAIN ENGLISH</div><h2>{lesson.summary}</h2><div className="analogy-box"><div className="analogy-icon"><Lightbulb size={20} /></div><div><strong>Real-life analogy</strong><p>{lesson.analogy}</p></div></div></section><section className="live-lesson-stages panel"><div className="section-heading"><div><div className="eyebrow">TRACE THE SYSTEM</div><h3>Three moments to inspect</h3></div><button className="button primary" onClick={onVisualise}><Play size={14} fill="currentColor" /> Run visual</button></div><div className="live-stage-list">{lesson.stages.map((item) => <div className="live-stage-row" key={item.id}><span>{item.label}</span><div><strong>{item.title}</strong><p>{item.explanation}</p></div><ArrowRight size={15} /></div>)}</div></section></div><aside className="live-overview-side"><div className="objectives panel"><div className="eyebrow">BY THE END</div><h3>You will be able to</h3><ul>{lesson.objectives.map((item) => <li key={item}><Check size={14} /> {item}</li>)}</ul></div><div className="live-source panel"><div className="eyebrow">COURSE SOURCE</div><strong>Code Origin.AI lesson library</strong><p>Content version 1.4 · reviewed by the learning team</p><span><CheckCircle2 size={13} /> Grounded lesson content</span></div></aside></div>
 }
 
-function LiveConceptAnimation({ lesson, stage, setStage }: { lesson: typeof liveLessons[number]; stage: number; setStage: (stage: number) => void }) {
+function LiveConceptAnimation({ lesson, stage, setStage }: { lesson: LiveLesson; stage: number; setStage: (stage: number) => void }) {
   return <div className="live-visual-page"><DigitalAvatarStudio lesson={lesson} stage={stage} setStage={setStage} /><div className="live-stage-inspector panel"><div className="inspector-index">{lesson.stages[stage].label}</div><div><div className="eyebrow">INPUT → OUTPUT → FAILURE</div><h3>{lesson.stages[stage].explanation}</h3><p><strong>Technical:</strong> {lesson.stages[stage].technical}</p><span className="failure-note"><Zap size={13} /> {lesson.stages[stage].failure}</span></div></div></div>
 }
 
-function DigitalAvatarStudio({ lesson, stage, setStage }: { lesson: typeof liveLessons[number]; stage: number; setStage: (stage: number) => void }) {
+function DigitalAvatarStudio({ lesson, stage, setStage }: { lesson: LiveLesson; stage: number; setStage: (stage: number) => void }) {
   const [playing, setPlaying] = useState(false)
   const [speed, setSpeed] = useState<0.5 | 1 | 1.5 | 2>(1)
   const [beat, setBeat] = useState(0)
@@ -319,14 +368,14 @@ function DigitalAvatarStudio({ lesson, stage, setStage }: { lesson: typeof liveL
     return () => window.clearInterval(timer)
   }, [lesson.stages.length, playing, setStage, speed, stage])
   const replay = () => { setBeat((value) => value + 1); setStage(0); setPlaying(true) }
-  const scene = lesson.id === 'what-is-an-embedding' ? 'embedding-scene' : 'dataset-scene'
+  const scene = lesson.moduleNumber === '07' ? 'embedding-scene' : 'dataset-scene'
   return <div className="avatar-studio">
     <div className="avatar-studio-top"><div><div className="eyebrow">DIGITAL INSTRUCTOR · LIVE SCENE {current.label}</div><h2>{current.title}</h2><p>Watch the instructor explain the concept while the system state changes beside them.</p></div><div className="avatar-studio-controls"><button className="button primary" onClick={() => setPlaying((value) => !value)}>{playing ? 'Pause lesson' : 'Play lesson'} <Play size={13} fill={playing ? 'currentColor' : 'none'} /></button><button className="icon-button subtle" onClick={replay} aria-label="Replay avatar lesson"><RotateCcw size={16} /></button></div></div>
     <div className={`avatar-stage panel ${scene} ${playing ? 'is-playing' : ''}`} key={beat}>
       <div className="avatar-stars"><i /><i /><i /><i /><i /></div><div className="avatar-floor" /><div className="avatar-hud"><span><i /> LIVE RENDER</span><span>Scene {current.label} / {lesson.stages.length}</span></div>
       <div className="avatar-instructor" aria-label="Digital AI instructor animation"><div className="avatar-aura" /><div className="avatar-head"><div className="avatar-hair" /><div className="avatar-face"><i className="avatar-eye left" /><i className="avatar-eye right" /><span className="avatar-nose" /><span className="avatar-mouth" /></div><div className="avatar-ear left" /><div className="avatar-ear right" /></div><div className="avatar-neck" /><div className="avatar-body"><span className="avatar-badge">CO</span><span className="avatar-collar" /></div><div className="avatar-arm left" /><div className="avatar-arm right" /><div className="avatar-hand left" /><div className="avatar-hand right" /><div className="avatar-shadow" /></div>
       <div className="avatar-speech"><span className="speech-kicker">INSTRUCTOR EXPLAINS</span><strong>{current.explanation}</strong><small>“Pause me, change the scene, and inspect what moved.”</small></div>
-      {lesson.id === 'what-is-an-embedding' ? <div className="avatar-concept embedding-concept"><span className="concept-label">SEMANTIC SPACE</span><div className="concept-vector v1">retrieval</div><div className="concept-vector v2">evaluation</div><div className="concept-vector v3">recipe</div><svg viewBox="0 0 260 160" aria-hidden="true"><path d="M35 96 C80 46 116 123 177 56 S230 78 250 35" /><circle cx="35" cy="96" r="4" /><circle cx="177" cy="56" r="4" /></svg></div> : <div className="avatar-concept dataset-concept"><span className="concept-label">DATA PIPELINE</span><div className="concept-card train-card"><strong>TRAIN</strong><small>learn patterns</small><b>70%</b></div><ArrowRight size={16} /><div className="concept-card validation-card"><strong>VALIDATE</strong><small>tune choices</small><b>15%</b></div><ArrowRight size={16} /><div className="concept-card test-card"><strong>TEST</strong><small>final exam</small><b>15%</b></div><span className="concept-pulse" /></div>}
+      {lesson.moduleNumber === '07' ? <div className="avatar-concept embedding-concept"><span className="concept-label">SEMANTIC SPACE</span><div className="concept-vector v1">retrieval</div><div className="concept-vector v2">evaluation</div><div className="concept-vector v3">recipe</div><svg viewBox="0 0 260 160" aria-hidden="true"><path d="M35 96 C80 46 116 123 177 56 S230 78 250 35" /><circle cx="35" cy="96" r="4" /><circle cx="177" cy="56" r="4" /></svg></div> : <div className="avatar-concept dataset-concept"><span className="concept-label">DATA PIPELINE</span><div className="concept-card train-card"><strong>TRAIN</strong><small>learn patterns</small><b>70%</b></div><ArrowRight size={16} /><div className="concept-card validation-card"><strong>VALIDATE</strong><small>tune choices</small><b>15%</b></div><ArrowRight size={16} /><div className="concept-card test-card"><strong>TEST</strong><small>final exam</small><b>15%</b></div><span className="concept-pulse" /></div>}
       <div className="avatar-caption"><span>Stage {current.label}</span><strong>{current.technical}</strong></div>
     </div>
     <div className="avatar-control-bar"><div className="avatar-stage-buttons">{lesson.stages.map((item, index) => <button className={index === stage ? 'active' : ''} onClick={() => { setPlaying(false); setStage(index) }} key={item.id}><span>{item.label}</span>{item.title}</button>)}</div><label>Speed<select value={speed} onChange={(event) => setSpeed(Number(event.target.value) as 0.5 | 1 | 1.5 | 2)}><option value="0.5">0.5×</option><option value="1">1×</option><option value="1.5">1.5×</option><option value="2">2×</option></select></label></div>
@@ -334,15 +383,21 @@ function DigitalAvatarStudio({ lesson, stage, setStage }: { lesson: typeof liveL
   </div>
 }
 
-function LiveLearn({ lesson, stage }: { lesson: typeof liveLessons[number]; stage: number }) { return <div className="live-learn-grid"><div className="learn-main panel"><div className="eyebrow">TECHNICAL EXPLANATION</div><h2>{lesson.stages[stage].title}</h2><p>{lesson.stages[stage].technical}</p><div className="live-learn-flow">{lesson.stages.map((item, index) => <div className={index <= stage ? 'reached' : ''} key={item.id}><span>{item.label}</span><strong>{item.title}</strong><small>{index <= stage ? 'inspected' : 'not yet run'}</small></div>)}</div></div><div className="mistake-card panel"><div className="eyebrow">FAILURE MODE</div><h3>What can go wrong?</h3><p>{lesson.stages[stage].failure}</p><div className="failure-check"><X size={15} /> Break the assumption, then rerun the visual.</div></div></div> }
+function LiveLearn({ lesson, stage }: { lesson: LiveLesson; stage: number }) { return <div className="live-learn-grid"><div className="learn-main panel"><div className="eyebrow">TECHNICAL EXPLANATION</div><h2>{lesson.stages[stage].title}</h2><p>{lesson.stages[stage].technical}</p><div className="live-learn-flow">{lesson.stages.map((item, index) => <div className={index <= stage ? 'reached' : ''} key={item.id}><span>{item.label}</span><strong>{item.title}</strong><small>{index <= stage ? 'inspected' : 'not yet run'}</small></div>)}</div></div><div className="mistake-card panel"><div className="eyebrow">FAILURE MODE</div><h3>What can go wrong?</h3><p>{lesson.stages[stage].failure}</p><div className="failure-check"><X size={15} /> Break the assumption, then rerun the visual.</div></div></div> }
 
-function LiveCodeLesson({ lesson, onNavigate }: { lesson: typeof liveLessons[number]; onNavigate: (route: Route) => void }) { return <div className="code-lesson panel"><div className="code-lesson-head"><div><div className="eyebrow">RUNNABLE EXAMPLE</div><h2>Make the concept explicit in Python.</h2><p>This lesson’s code is also available in the full browser laboratory.</p></div><button className="button primary" onClick={() => onNavigate('lab')}><TerminalSquare size={15} /> Open live lab</button></div><div className="code-editor compact"><div className="editor-bar"><div className="traffic-lights"><i /><i /><i /></div><span>{lesson.id}.py</span><div className="editor-actions"><button onClick={() => navigator.clipboard?.writeText(lesson.code)}><Copy size={14} /></button></div></div><pre className="lesson-code-block">{lesson.code}</pre></div><div className="output-row"><div><span className="output-label"><CheckCircle2 size={14} /> Expected output</span><pre>{lesson.output}</pre></div><div><span className="output-label muted"><Lightbulb size={14} /> Common mistakes</span><ul className="mistake-list">{lesson.mistakes.map((item) => <li key={item}>{item}</li>)}</ul></div></div></div> }
+function LiveCodeLesson({ lesson, onNavigate }: { lesson: LiveLesson; onNavigate: (route: Route) => void }) { return <div className="code-lesson panel"><div className="code-lesson-head"><div><div className="eyebrow">RUNNABLE EXAMPLE</div><h2>Make the concept explicit in Python.</h2><p>This lesson’s code is also available in the full browser laboratory.</p></div><button className="button primary" onClick={() => onNavigate('lab')}><TerminalSquare size={15} /> Open live lab</button></div><div className="code-editor compact"><div className="editor-bar"><div className="traffic-lights"><i /><i /><i /></div><span>{lesson.id}.py</span><div className="editor-actions"><button onClick={() => navigator.clipboard?.writeText(lesson.code)}><Copy size={14} /></button></div></div><pre className="lesson-code-block">{lesson.code}</pre></div><div className="output-row"><div><span className="output-label"><CheckCircle2 size={14} /> Expected output</span><pre>{lesson.output}</pre></div><div><span className="output-label muted"><Lightbulb size={14} /> Common mistakes</span><ul className="mistake-list">{lesson.mistakes.map((item) => <li key={item}>{item}</li>)}</ul></div></div></div> }
 
-function LivePractice({ lesson }: { lesson: typeof liveLessons[number] }) { const [answer, setAnswer] = useState(''); const [checked, setChecked] = useState(false); const correct = lesson.id === 'what-is-an-embedding' ? answer === 'semantic' : answer === 'validation'; return <div className="practice-panel panel"><div className="eyebrow">ACTIVE PRACTICE</div><h2>Choose the signal that answers the question.</h2><p>{lesson.id === 'what-is-an-embedding' ? 'Which word best describes comparing meaning coordinates?' : 'Which split should tune a threshold before the final report?'}</p><div className="practice-options">{(lesson.id === 'what-is-an-embedding' ? ['keyword', 'semantic', 'random'] : ['training', 'validation', 'test']).map((item) => <button className={answer === item ? 'selected' : ''} onClick={() => { setAnswer(item); setChecked(false) }} key={item}><span>{answer === item ? <Check size={14} /> : item[0].toUpperCase()}</span>{item}</button>)}</div><button className="button primary" disabled={!answer} onClick={() => setChecked(true)}>Check understanding <ArrowRight size={14} /></button>{checked && <div className={`feedback-box ${correct ? '' : 'incorrect'}`}><CheckCircle2 size={18} /><div><strong>{correct ? 'Correct.' : 'Not yet.'}</strong><p>{correct ? 'That choice matches the technical explanation. Now inspect the failure mode in the visual.' : lesson.id === 'what-is-an-embedding' ? 'Semantic similarity compares learned meaning representations.' : 'Use validation data to tune decisions while the test set stays sealed.'}</p></div></div>}</div> }
+function LivePractice({ lesson }: { lesson: LiveLesson }) {
+  const [answer, setAnswer] = useState('')
+  const [checked, setChecked] = useState(false)
+  const options = lesson.practiceOptions ?? [lesson.summary, 'It removes the need for evaluation.', 'It is only a visual effect.']
+  const correct = answer === (lesson.practiceAnswer ?? options[0])
+  return <div className="practice-panel panel"><div className="eyebrow">ACTIVE PRACTICE</div><h2>Choose the signal that answers the question.</h2><p>{lesson.practiceQuestion ?? `Which statement best describes ${lesson.title.toLowerCase()}?`}</p><div className="practice-options">{options.map((item) => <button className={answer === item ? 'selected' : ''} onClick={() => { setAnswer(item); setChecked(false) }} key={item}><span>{answer === item ? <Check size={14} /> : item[0].toUpperCase()}</span>{item}</button>)}</div><button className="button primary" disabled={!answer} onClick={() => setChecked(true)}>Check understanding <ArrowRight size={14} /></button>{checked && <div className={`feedback-box ${correct ? '' : 'incorrect'}`}><CheckCircle2 size={18} /><div><strong>{correct ? 'Correct.' : 'Not yet.'}</strong><p>{correct ? 'That choice matches the technical explanation. Now inspect the failure mode in the visual.' : `Review the lesson summary and failure mode for ${lesson.title.toLowerCase()}, then try again.`}</p></div></div>}</div>
+}
 
-function LiveQuiz({ lesson, onComplete }: { lesson: typeof liveLessons[number]; onComplete: () => void }) { const [choice, setChoice] = useState(''); const [submitted, setSubmitted] = useState(false); const correct = lesson.id === 'what-is-an-embedding' ? 'The vector distance is a learned representation, not a human-readable fact.' : 'Repeated use turns the test set into a tuning signal.'; const options = lesson.id === 'what-is-an-embedding' ? ['The vector distance is a learned representation, not a human-readable fact.', 'The closest point is always factually true.', 'Embeddings are only two-dimensional.'] : ['It is smaller than training data.', 'Repeated use turns the test set into a tuning signal.', 'It contains no labels.']; return <div className="quiz-panel panel"><div className="quiz-progress"><span>LIVE CHECK · 01 / 03</span><div><span style={{ width: submitted ? '100%' : '35%' }} /></div></div><div className="eyebrow">KNOWLEDGE CHECK</div><h2>{lesson.id === 'what-is-an-embedding' ? 'What does similarity actually tell you?' : 'Why should the test set be used only once?'}</h2><div className="quiz-options">{options.map((option, index) => <button className={`${choice === option ? 'selected' : ''} ${submitted && option === correct ? 'correct' : ''}`} onClick={() => setChoice(option)} key={option}><span>{String.fromCharCode(65 + index)}</span>{option}{submitted && option === correct && <Check size={15} />}</button>)}</div><div className="quiz-actions"><button className="button primary" disabled={!choice} onClick={() => { setSubmitted(true); if (choice === correct) onComplete() }}>{submitted ? 'Answer recorded' : 'Check answer'} <ArrowRight size={14} /></button>{submitted && <div className="answer-explain"><CheckCircle2 size={16} /> {choice === correct ? 'Correct — the explanation is grounded in this lesson.' : 'Review the highlighted answer and rerun the visual.'}</div>}</div></div> }
+function LiveQuiz({ lesson, onComplete }: { lesson: LiveLesson; onComplete: () => void }) { const [choice, setChoice] = useState(''); const [submitted, setSubmitted] = useState(false); const options = lesson.quizOptions ?? ['Measure the output against a clear goal.', 'Skip edge cases when the demo works.', 'Hide the failure mode from the learner.']; const correct = lesson.quizAnswer ?? options[0]; return <div className="quiz-panel panel"><div className="quiz-progress"><span>LIVE CHECK · 01 / 03</span><div><span style={{ width: submitted ? '100%' : '35%' }} /></div></div><div className="eyebrow">KNOWLEDGE CHECK</div><h2>{lesson.quizQuestion ?? `Which engineering habit makes ${lesson.title.toLowerCase()} more reliable?`}</h2><div className="quiz-options">{options.map((option, index) => <button className={`${choice === option ? 'selected' : ''} ${submitted && option === correct ? 'correct' : ''}`} onClick={() => setChoice(option)} key={option}><span>{String.fromCharCode(65 + index)}</span>{option}{submitted && option === correct && <Check size={15} />}</button>)}</div><div className="quiz-actions"><button className="button primary" disabled={!choice} onClick={() => { setSubmitted(true); if (choice === correct) onComplete() }}>{submitted ? 'Answer recorded' : 'Check answer'} <ArrowRight size={14} /></button>{submitted && <div className="answer-explain"><CheckCircle2 size={16} /> {choice === correct ? 'Correct — the explanation is grounded in this lesson.' : 'Review the highlighted answer and rerun the visual.'}</div>}</div></div> }
 
-function LiveNotesPanel({ lesson }: { lesson: typeof liveLessons[number] }) {
+function LiveNotesPanel({ lesson }: { lesson: LiveLesson }) {
   const storageKey = `coai-live-notes-${lesson.id}`
   const saved = JSON.parse(localStorage.getItem(storageKey) || '{"content":"","tags":[],"analysis":null}') as { content: string; tags: string[]; analysis: NotesAnalysis | null }
   const [content, setContent] = useState(saved.content)

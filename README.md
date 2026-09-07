@@ -22,7 +22,7 @@ npm test
 
 - **Dashboard** — daily plan, progress signals, skill points, streak, path rail and project studio.
 - **Learning path / catalogue** — the 11-module systems-first path from AI Foundations through Production AI, with module states and progress.
-- **Live lesson player** — structured Machine Learning and Embeddings lessons with plain-language explanation, technical stages, failure modes, runnable code, practice, quiz, bookmarks and progress persistence.
+- **Live lesson player** — a complete 161-lesson curriculum across all 11 modules, with searchable/module-filtered navigation, structured explanations, digital avatar scenes, runnable examples, practice, quizzes, bookmarks and per-lesson progress persistence.
 - **Live visual studios** — a working neural-network simulator with editable input/weight/bias/activation and backprop step, an embedding-space explorer, Python coding lab, stage-by-stage RAG pipeline, and agent loop with approval gate and memory inspection.
 - **Digital notebook** — lesson-scoped notes autosave locally, support tags, call the protected `/api/notes/analyze` endpoint, display grounded concepts/confidence/next actions, and let the learner apply the mentor update back into the note.
 - **Live course signals** — the dashboard fetches `/api/live-updates` with a server timestamp, source label, refresh state and offline fallback instead of pretending that static cards are live.
@@ -30,7 +30,7 @@ npm test
 
 ## Architecture notes
 
-The learning product keeps domain data in `src/data.ts` and `src/lessonContent.ts`, product composition in `src/App.tsx`, and all visual tokens/responsive behavior in `src/styles.css`. The client-side routing uses the History API so tabs and lessons do not reload the page. The backend exposes server-timestamped course updates, authenticated progress, contextual mentor responses and note analysis. The note-analysis fallback remains available offline; production deployments should replace the heuristic with a retrieval-grounded model call behind the same protected endpoint.
+The learning product keeps domain data in `src/data.ts`, the complete curriculum in `src/courseCatalog.ts` and curated lesson primitives in `src/lessonContent.ts`, product composition in `src/App.tsx`, and all visual tokens/responsive behavior in `src/styles.css`. The client-side routing uses the History API so tabs and lessons do not reload the page. The backend exposes server-timestamped course updates, authenticated progress, contextual mentor responses and note analysis. The note-analysis fallback remains available offline; production deployments should replace the heuristic with a retrieval-grounded model call behind the same protected endpoint.
 
 For production, wire the following behind protected server endpoints rather than exposing keys in the browser:
 

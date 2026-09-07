@@ -1,3 +1,4 @@
+import { lessonCountsByModule } from './courseCatalog'
 import type { LucideIcon } from 'lucide-react'
 import {
   Bot, BrainCircuit, Boxes, Braces, Database, GitBranch, Layers3, Network, Rocket, Sparkles,
@@ -18,17 +19,17 @@ export type Module = {
 }
 
 export const modules: Module[] = [
-  { id: 'foundations', number: '01', title: 'AI Foundations', subtitle: 'Build the mental model', description: 'From everyday automation to models that learn from data.', lessons: 12, minutes: 168, progress: 100, color: '#d6a84b', icon: BrainCircuit, status: 'complete' },
-  { id: 'machine-learning', number: '02', title: 'Machine Learning', subtitle: 'Find patterns in data', description: 'Build, evaluate and improve your first predictive systems.', lessons: 14, minutes: 214, progress: 68, color: '#70d1c3', icon: Network, status: 'current' },
-  { id: 'deep-learning', number: '03', title: 'Deep Learning', subtitle: 'Learn with neural nets', description: 'See how layers, weights and gradients create intelligence.', lessons: 10, minutes: 192, progress: 0, color: '#a995e8', icon: Layers3, status: 'locked' },
-  { id: 'generative-ai', number: '04', title: 'Generative AI', subtitle: 'Create with foundation models', description: 'Tokens, context and the architecture behind modern AI.', lessons: 11, minutes: 180, progress: 0, color: '#e98d83', icon: Sparkles, status: 'locked' },
-  { id: 'prompt-engineering', number: '05', title: 'Prompt Engineering', subtitle: 'Design better model behavior', description: 'Reliable prompts, structured outputs, evaluation and safety.', lessons: 12, minutes: 196, progress: 0, color: '#d6a84b', icon: Braces, status: 'locked' },
-  { id: 'llm-engineering', number: '06', title: 'LLM Engineering', subtitle: 'Design reliable language apps', description: 'Move from prompting to production-grade LLM systems.', lessons: 15, minutes: 248, progress: 0, color: '#d6a84b', icon: Braces, status: 'locked' },
-  { id: 'embeddings', number: '07', title: 'Embeddings & Vectors', subtitle: 'Give meaning coordinates', description: 'Explore semantic space, similarity and vector search.', lessons: 9, minutes: 144, progress: 0, color: '#70d1c3', icon: Boxes, status: 'locked' },
-  { id: 'rag', number: '08', title: 'Retrieval-Augmented Gen', subtitle: 'Ground answers in evidence', description: 'Build a document question-answering pipeline with citations.', lessons: 16, minutes: 276, progress: 0, color: '#a995e8', icon: Database, status: 'locked' },
-  { id: 'agents', number: '09', title: 'AI Agents', subtitle: 'Give models a way to act', description: 'Tools, memory, planning and the agent execution loop.', lessons: 13, minutes: 220, progress: 0, color: '#e98d83', icon: Bot, status: 'locked' },
-  { id: 'agentic-ai', number: '10', title: 'Agentic AI', subtitle: 'Orchestrate intelligent work', description: 'Multi-agent systems, handoffs, guardrails and evaluation.', lessons: 14, minutes: 252, progress: 0, color: '#a995e8', icon: GitBranch, status: 'locked' },
-  { id: 'production', number: '11', title: 'Production AI', subtitle: 'Ship with confidence', description: 'Deploy, observe and secure AI systems that last.', lessons: 18, minutes: 312, progress: 0, color: '#d6a84b', icon: Rocket, status: 'locked' },
+  { id: 'foundations', number: '01', title: 'AI Foundations', subtitle: 'Build the mental model', description: 'From everyday automation to models that learn from data.', lessons: lessonCountsByModule.foundations, minutes: 168, progress: 100, color: '#d6a84b', icon: BrainCircuit, status: 'complete' },
+  { id: 'machine-learning', number: '02', title: 'Machine Learning', subtitle: 'Find patterns in data', description: 'Build, evaluate and improve your first predictive systems.', lessons: lessonCountsByModule['machine-learning'], minutes: 214, progress: 68, color: '#70d1c3', icon: Network, status: 'current' },
+  { id: 'deep-learning', number: '03', title: 'Deep Learning', subtitle: 'Learn with neural nets', description: 'See how layers, weights and gradients create intelligence.', lessons: lessonCountsByModule['deep-learning'], minutes: 192, progress: 0, color: '#a995e8', icon: Layers3, status: 'locked' },
+  { id: 'generative-ai', number: '04', title: 'Generative AI', subtitle: 'Create with foundation models', description: 'Tokens, context and the architecture behind modern AI.', lessons: lessonCountsByModule['generative-ai'], minutes: 180, progress: 0, color: '#e98d83', icon: Sparkles, status: 'locked' },
+  { id: 'prompt-engineering', number: '05', title: 'Prompt Engineering', subtitle: 'Design better model behavior', description: 'Reliable prompts, structured outputs, evaluation and safety.', lessons: lessonCountsByModule['prompt-engineering'], minutes: 196, progress: 0, color: '#d6a84b', icon: Braces, status: 'locked' },
+  { id: 'llm-engineering', number: '06', title: 'LLM Engineering', subtitle: 'Design reliable language apps', description: 'Move from prompting to production-grade LLM systems.', lessons: lessonCountsByModule['llm-engineering'], minutes: 248, progress: 0, color: '#d6a84b', icon: Braces, status: 'locked' },
+  { id: 'embeddings', number: '07', title: 'Embeddings & Vectors', subtitle: 'Give meaning coordinates', description: 'Explore semantic space, similarity and vector search.', lessons: lessonCountsByModule.embeddings, minutes: 144, progress: 0, color: '#70d1c3', icon: Boxes, status: 'locked' },
+  { id: 'rag', number: '08', title: 'Retrieval-Augmented Gen', subtitle: 'Ground answers in evidence', description: 'Build a document question-answering pipeline with citations.', lessons: lessonCountsByModule.rag, minutes: 276, progress: 0, color: '#a995e8', icon: Database, status: 'locked' },
+  { id: 'agents', number: '09', title: 'AI Agents', subtitle: 'Give models a way to act', description: 'Tools, memory, planning and the agent execution loop.', lessons: lessonCountsByModule.agents, minutes: 220, progress: 0, color: '#e98d83', icon: Bot, status: 'locked' },
+  { id: 'agentic-ai', number: '10', title: 'Agentic AI', subtitle: 'Orchestrate intelligent work', description: 'Multi-agent systems, handoffs, guardrails and evaluation.', lessons: lessonCountsByModule['agentic-ai'], minutes: 252, progress: 0, color: '#a995e8', icon: GitBranch, status: 'locked' },
+  { id: 'production', number: '11', title: 'Production AI', subtitle: 'Ship with confidence', description: 'Deploy, observe and secure AI systems that last.', lessons: lessonCountsByModule.production, minutes: 312, progress: 0, color: '#d6a84b', icon: Rocket, status: 'locked' },
 ]
 
 export const lessonTopics = [

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { modules, pathNodes } from './data'
-import { liveLessons, liveTopicFeed } from './lessonContent'
+import { allLessons, catalogModules, lessonCount } from './courseCatalog'
+import { liveTopicFeed } from './lessonContent'
 
 describe('learning studio curriculum data', () => {
   it('starts with foundations and keeps a connected learning path', () => {
@@ -18,10 +19,19 @@ describe('learning studio curriculum data', () => {
 
 
 describe('live lesson experience', () => {
-  it('ships structured lesson content with visual stages and runnable examples', () => {
-    expect(liveLessons.length).toBeGreaterThanOrEqual(2)
-    expect(liveLessons.every((lesson) => lesson.stages.length >= 3 && lesson.code.length > 80)).toBe(true)
-    expect(liveLessons.map((lesson) => lesson.title)).toContain('What is an embedding?')
+  it('ships the complete structured lesson library across every module', () => {
+    expect(catalogModules).toHaveLength(11)
+    expect(catalogModules.every((module) => module.topics.length > 0)).toBe(true)
+    expect(lessonCount).toBe(allLessons.length)
+    expect(lessonCount).toBe(161)
+    expect(allLessons.every((lesson) => lesson.stages.length >= 3 && lesson.code.length > 20)).toBe(true)
+    expect(allLessons.map((lesson) => lesson.title)).toEqual(expect.arrayContaining([
+      'What is Artificial Intelligence?',
+      'How an LLM works',
+      'What is RAG?',
+      'What is an AI agent?',
+      'Production guardrails',
+    ]))
   })
 
   it('provides course-owned live update signals', () => {

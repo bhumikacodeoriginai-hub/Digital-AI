@@ -23,6 +23,12 @@ export type LiveLesson = {
   output: string
   mistakes: string[]
   interview: string[]
+  practiceQuestion?: string
+  practiceOptions?: string[]
+  practiceAnswer?: string
+  quizQuestion?: string
+  quizOptions?: string[]
+  quizAnswer?: string
 }
 
 export const liveLessons: LiveLesson[] = [
