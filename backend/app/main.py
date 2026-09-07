@@ -78,3 +78,39 @@ def mentor(payload: MentorRequest, authorization: str | None = Header(default=No
         "citations": [{"lessonId": payload.lessonId, "label": "Train, validation & test sets", "section": "The short version"}],
         "grounded": True,
     }
+
+
+class NotesRequest(BaseModel):
+    lessonId: str
+    content: str = Field(min_length=1, max_length=12000)
+    tags: list[str] = Field(default_factory=list)
+
+@app.get("/api/live-updates")
+def live_updates() -> dict:
+    """Return course-owned updates with a server timestamp, not fabricated external news."""
+    return {
+        "updatedAt": datetime.now(timezone.utc).isoformat(),
+        "source": "Code Origin.AI course operations",
+        "items": [
+            {"id": "topic-1", "label": "SYSTEM UPDATE", "title": "RAG evaluation lab refreshed", "detail": "New faithfulness and context-relevance checks are available in the laboratory.", "tone": "cyan"},
+            {"id": "topic-2", "label": "NEW LESSON", "title": "Embeddings are now interactive", "detail": "Compare semantic distance with live vector points and metadata filters.", "tone": "gold"},
+            {"id": "topic-3", "label": "MENTOR NOTE", "title": "Try the failure mode first", "detail": "Break one assumption and inspect the trace to understand the system.", "tone": "violet"},
+        ],
+    }
+
+@app.post("/api/notes/analyze")
+def analyze_notes(payload: NotesRequest, authorization: str | None = Header(default=None)) -> dict:
+    if authorization != "Bearer demo-session-token":
+        raise HTTPException(status_code=401, detail="Authentication required")
+    words = {word.strip(".,!?():").lower() for word in payload.content.split()}
+    matched = [term for term in ["training", "validation", "test", "leakage", "embedding", "retrieval", "model", "data"] if term in words]
+    focus = matched[:4] or ["core concept"]
+    return {
+        "lessonId": payload.lessonId,
+        "analyzedAt": datetime.now(timezone.utc).isoformat(),
+        "summary": f"Your note is centred on {', '.join(focus)}. Keep one concrete example and one failure mode beside this idea.",
+        "concepts": focus,
+        "nextAction": "Run the visual simulator, then answer the lesson quiz without looking at your note.",
+        "confidence": min(0.96, 0.58 + len(matched) * 0.08),
+        "grounded": True,
+    }
