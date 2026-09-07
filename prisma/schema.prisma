@@ -1,0 +1,129 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  extensions = [pgvector]
+}
+
+enum UserRole {
+  STUDENT
+  TRAINER
+  ADMIN
+}
+
+enum ProgressStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+}
+
+model User {
+  id              String            @id @default(cuid())
+  email           String            @unique
+  displayName     String
+  passwordHash    String
+  role            UserRole          @default(STUDENT)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  enrollments     Enrollment[]
+  lessonProgress  LessonProgress[]
+  quizAttempts    QuizAttempt[]
+  submissions     ProjectSubmission[]
+  certificates    Certificate[]
+}
+
+model Course {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  description String
+  published   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  modules     Module[]
+  enrollments Enrollment[]
+}
+
+model Module {
+  id          String   @id @default(cuid())
+  courseId    String
+  number      Int
+  slug        String
+  title       String
+  description String
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons     Lesson[]
+  @@unique([courseId, number])
+}
+
+model Lesson {
+  id             String           @id @default(cuid())
+  moduleId       String
+  slug           String
+  title          String
+  durationMin    Int
+  difficulty     String
+  contentVersion Int              @default(1)
+  module         Module           @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  progress       LessonProgress[]
+  @@unique([moduleId, slug])
+}
+
+model Enrollment {
+  id          String   @id @default(cuid())
+  userId      String
+  courseId    String
+  enrolledAt  DateTime @default(now())
+  lastAccess  DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  @@unique([userId, courseId])
+}
+
+model LessonProgress {
+  id           String         @id @default(cuid())
+  userId       String
+  lessonId     String
+  status       ProgressStatus @default(NOT_STARTED)
+  percent      Int            @default(0)
+  secondsSpent Int            @default(0)
+  completedAt  DateTime?
+  updatedAt    DateTime       @updatedAt
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson       Lesson         @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  @@unique([userId, lessonId])
+}
+
+model QuizAttempt {
+  id          String   @id @default(cuid())
+  userId      String
+  lessonId    String
+  score       Int
+  attempts    Int      @default(1)
+  timeSeconds Int      @default(0)
+  weakConcepts Json
+  createdAt   DateTime @default(now())
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ProjectSubmission {
+  id          String   @id @default(cuid())
+  userId      String
+  projectSlug String
+  milestone   Int      @default(1)
+  payload     Json
+  submittedAt DateTime @default(now())
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Certificate {
+  id         String   @id @default(cuid())
+  userId     String
+  courseSlug String
+  issuedAt   DateTime @default(now())
+  credential String   @unique
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
